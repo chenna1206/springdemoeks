@@ -92,10 +92,19 @@ pipeline {
 
         stage('Deploy to EKS') {
             steps {
-                bat '''
-                    kubectl apply -f deployment/deployment.yaml
-                    kubectl apply -f deployment/service.yaml
-                '''
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'aws-ecr',
+                        usernameVariable: 'AWS_ACCESS_KEY_ID',
+                        passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                    )
+                ]) {
+                    bat '''
+                        aws sts get-caller-identity
+                        kubectl apply -f deployment/deployment.yaml
+                        kubectl apply -f deployment/service.yaml
+                    '''
+                }
             }
         }
 
