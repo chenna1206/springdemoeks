@@ -11,13 +11,19 @@ pipeline {
     }
 
     environment {
+
         AWS_REGION = 'ap-south-1'
         AWS_ACCOUNT_ID = '911291530745'
+
         ECR_REPOSITORY = 'springbooteks'
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         IMAGE_NAME = "${ECR_REGISTRY}/${ECR_REPOSITORY}"
+
         EKS_CLUSTER = 'springboot-eks-cluster'
+        EKS_NODEGROUP = 'springboot-nodes'
+
         K8S_DEPLOYMENT = 'springboot-eks-deployment'
+        K8S_SERVICE = 'springboot-eks-service'
         K8S_CONTAINER = 'springboot-eks'
     }
 
@@ -29,6 +35,7 @@ pipeline {
                     params.ACTION == 'DEPLOY'
                 }
             }
+
             steps {
                 checkout scm
             }
@@ -40,6 +47,7 @@ pipeline {
                     params.ACTION == 'DEPLOY'
                 }
             }
+
             steps {
                 bat 'mvnw.cmd clean test'
             }
@@ -51,6 +59,7 @@ pipeline {
                     params.ACTION == 'DEPLOY'
                 }
             }
+
             steps {
                 bat 'mvnw.cmd clean package -DskipTests'
             }
@@ -62,6 +71,7 @@ pipeline {
                     params.ACTION == 'DEPLOY'
                 }
             }
+
             steps {
                 bat 'docker build -t %IMAGE_NAME%:%BUILD_NUMBER% .'
             }
@@ -73,6 +83,7 @@ pipeline {
                     params.ACTION == 'DEPLOY'
                 }
             }
+
             steps {
                 withCredentials([
                         usernamePassword(
@@ -84,7 +95,9 @@ pipeline {
                     bat '''
                         echo AWS Region: %AWS_REGION%
                         echo ECR Registry: %ECR_REGISTRY%
+
                         aws sts get-caller-identity
+
                         aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REGISTRY%
                     '''
                 }
@@ -97,6 +110,7 @@ pipeline {
                     params.ACTION == 'DEPLOY'
                 }
             }
+
             steps {
                 bat 'docker push %IMAGE_NAME%:%BUILD_NUMBER%'
             }
@@ -108,6 +122,7 @@ pipeline {
                     params.ACTION == 'DEPLOY'
                 }
             }
+
             steps {
                 withCredentials([
                         usernamePassword(
@@ -118,6 +133,7 @@ pipeline {
                 ]) {
                     bat '''
                         aws sts get-caller-identity
+
                         aws eks update-kubeconfig --region %AWS_REGION% --name %EKS_CLUSTER%
                     '''
                 }
@@ -130,6 +146,7 @@ pipeline {
                     params.ACTION == 'DEPLOY'
                 }
             }
+
             steps {
                 withCredentials([
                         usernamePassword(
@@ -140,6 +157,7 @@ pipeline {
                 ]) {
                     bat '''
                         aws sts get-caller-identity
+
                         kubectl apply -f deployment/deployment.yaml
                         kubectl apply -f deployment/service.yaml
                     '''
@@ -153,6 +171,7 @@ pipeline {
                     params.ACTION == 'DEPLOY'
                 }
             }
+
             steps {
                 withCredentials([
                         usernamePassword(
@@ -174,6 +193,7 @@ pipeline {
                     params.ACTION == 'DEPLOY'
                 }
             }
+
             steps {
                 withCredentials([
                         usernamePassword(
@@ -184,6 +204,102 @@ pipeline {
                 ]) {
                     bat '''
                         kubectl rollout status deployment/%K8S_DEPLOYMENT% --timeout=5m
+
+                        echo.
+                        echo ===== PODS =====
+                        kubectl get pods
+
+                        echo.
+                        echo ===== SERVICE =====
+                        kubectl get svc %K8S_SERVICE%
+                    '''
+                }
+            }
+        }
+
+        stage('Cleanup Kubernetes Application') {
+            when {
+                expression {
+                    params.ACTION == 'DESTROY'
+                }
+            }
+
+            steps {
+                withCredentials([
+                        usernamePassword(
+                                credentialsId: 'aws-ecr',
+                                usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                        )
+                ]) {
+                    bat '''
+                        echo ==========================================
+                        echo Deleting Kubernetes application
+                        echo ==========================================
+
+                        kubectl delete deployment %K8S_DEPLOYMENT% --ignore-not-found=true
+
+                        kubectl delete service %K8S_SERVICE% --ignore-not-found=true
+
+                        echo Kubernetes application cleanup completed.
+                    '''
+                }
+            }
+        }
+
+        stage('Destroy EKS Infrastructure') {
+            when {
+                expression {
+                    params.ACTION == 'DESTROY'
+                }
+            }
+
+            steps {
+                withCredentials([
+                        usernamePassword(
+                                credentialsId: 'aws-ecr',
+                                usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                        )
+                ]) {
+                    bat '''
+                        echo ==========================================
+                        echo Destroying EKS infrastructure
+                        echo ==========================================
+
+                        aws sts get-caller-identity
+
+                        eksctl delete cluster --name %EKS_CLUSTER% --region %AWS_REGION% --wait
+
+                        echo EKS cluster and eksctl-managed infrastructure deleted.
+                    '''
+                }
+            }
+        }
+
+        stage('Delete ECR Repository') {
+            when {
+                expression {
+                    params.ACTION == 'DESTROY'
+                }
+            }
+
+            steps {
+                withCredentials([
+                        usernamePassword(
+                                credentialsId: 'aws-ecr',
+                                usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                        )
+                ]) {
+                    bat '''
+                        echo ==========================================
+                        echo Deleting ECR repository
+                        echo ==========================================
+
+                        aws ecr delete-repository --repository-name %ECR_REPOSITORY% --region %AWS_REGION% --force
+
+                        echo ECR repository deleted.
                     '''
                 }
             }
@@ -193,11 +309,24 @@ pipeline {
     post {
         success {
             echo '======================================'
-            echo 'Deployment successful!'
+            echo 'Pipeline completed successfully!'
             echo '======================================'
+
+            script {
+                if (params.ACTION == 'DEPLOY') {
+                    echo 'Application deployment completed successfully.'
+                }
+
+                if (params.ACTION == 'DESTROY') {
+                    echo 'EKS infrastructure and ECR cleanup completed successfully.'
+                }
+            }
         }
+
         failure {
-            echo 'Deployment failed!'
+            echo '======================================'
+            echo 'Pipeline failed!'
+            echo '======================================'
         }
     }
 }
