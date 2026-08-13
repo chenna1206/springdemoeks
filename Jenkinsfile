@@ -75,9 +75,18 @@ pipeline {
 
         stage('Configure EKS') {
             steps {
-                bat '''
-                    aws eks update-kubeconfig --region %AWS_REGION% --name %EKS_CLUSTER%
-                '''
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'aws-ecr',
+                        usernameVariable: 'AWS_ACCESS_KEY_ID',
+                        passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                    )
+                ]) {
+                    bat '''
+                        aws sts get-caller-identity
+                        aws eks update-kubeconfig --region %AWS_REGION% --name %EKS_CLUSTER%
+                    '''
+                }
             }
         }
 
