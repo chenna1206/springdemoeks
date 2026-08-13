@@ -1,7 +1,7 @@
 FROM maven:3.9.4-eclipse-temurin-17 AS builder
 WORKDIR /src
 COPY pom.xml mvnw ./
-COPY .. .
+COPY . .
 
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw dependency:go-offline
