@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: springboot-eks-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: springboot-eks
+  ports:
+    - protocol: TCP
+      port: 9191
+      targetPort: 9191

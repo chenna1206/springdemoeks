@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: springboot-eks-deployment
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: springboot-eks
+  template:
+    metadata:
+      labels:
+        app: springboot-eks
+    spec:
+      containers:
+        - name: springboot-eks
+          image: springdemo-image:latest
+          ports:
+            - containerPort: 9191
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"

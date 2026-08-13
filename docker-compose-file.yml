@@ -1,0 +1,27 @@
+services:
+  vote:
+    build: ./vote
+    ports:
+      - "8080:80"
+
+  result:
+    build: ./result
+    ports:
+      - "8081:80"
+
+  worker:
+    build: ./worker
+
+  redis:
+    image: redis:alpine
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+    db-data:
