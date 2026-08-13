@@ -10,7 +10,7 @@ pipeline {
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         IMAGE_NAME = "${ECR_REGISTRY}/${ECR_REPOSITORY}"
         EKS_CLUSTER = 'springboot-eks-cluster'
-        K8S_DEPLOYMENT = 'springboot-eks'
+        K8S_DEPLOYMENT = 'springboot-eks-deployment'
         K8S_CONTAINER = 'springboot-eks'
     }
 
