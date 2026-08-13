@@ -40,6 +40,14 @@ pipeline {
             }
         }
 
+      /*   stage('Login to ECR') {
+            steps {
+                bat '''
+                    aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REGISTRY%
+                '''
+            }
+        } */
+
         stage('Login to ECR') {
             steps {
                 withCredentials([
