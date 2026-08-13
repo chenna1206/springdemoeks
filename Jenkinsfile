@@ -110,20 +110,35 @@ pipeline {
 
         stage('Update Image') {
             steps {
-                bat '''
-                    kubectl set image deployment/%K8S_DEPLOYMENT% %K8S_CONTAINER%=%IMAGE_NAME%:%BUILD_NUMBER%
-                '''
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'aws-ecr',
+                        usernameVariable: 'AWS_ACCESS_KEY_ID',
+                        passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                    )
+                ]) {
+                    bat '''
+                        kubectl set image deployment/%K8S_DEPLOYMENT% %K8S_CONTAINER%=%IMAGE_NAME%:%BUILD_NUMBER%
+                    '''
+                }
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                bat '''
-                    kubectl rollout status deployment/%K8S_DEPLOYMENT% --timeout=5m
-                '''
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'aws-ecr',
+                        usernameVariable: 'AWS_ACCESS_KEY_ID',
+                        passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                    )
+                ]) {
+                    bat '''
+                        kubectl rollout status deployment/%K8S_DEPLOYMENT% --timeout=5m
+                    '''
+                }
             }
         }
-    }
 
     post {
         success {
