@@ -26,7 +26,15 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 dir("${TERRAFORM_DIR}") {
-                    bat 'terraform init'
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'aws-ecr',
+                            usernameVariable: 'AWS_ACCESS_KEY_ID',
+                            passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                        )
+                    ]) {
+                        bat 'terraform init'
+                    }
                 }
             }
         }
@@ -34,7 +42,15 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 dir("${TERRAFORM_DIR}") {
-                    bat 'terraform apply -auto-approve'
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'aws-ecr',
+                            usernameVariable: 'AWS_ACCESS_KEY_ID',
+                            passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                        )
+                    ]) {
+                        bat 'terraform apply -auto-approve'
+                    }
                 }
             }
         }
