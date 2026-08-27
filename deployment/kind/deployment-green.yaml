@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-green
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: springboot-app
+      version: green
+  template:
+    metadata:
+      labels:
+        app: springboot-app
+        version: green
+    spec:
+      containers:
+        - name: springboot-app
+          image: springbooteks:v2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9191
+          # Optional but recommended: Ensure v2 is fully started before switching
+          readinessProbe:
+            httpGet:
+              path: /demo/spring
+              port: 9191
+            initialDelaySeconds: 10
+            periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-green
+spec:
+  type: NodePort
+  selector:
+    app: springboot-app
+    version: green
+  ports:
+    - port: 9191
+      targetPort: 9191
+      nodePort: 30081

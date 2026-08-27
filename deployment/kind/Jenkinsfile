@@ -1,0 +1,95 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = "springbooteks"
+        KIND_CLUSTER = "springboot"
+        GREEN_DEPLOYMENT = "deployment-green"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                bat 'mvnw.cmd clean package'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                bat 'docker build -t %APP_NAME%:build-%BUILD_NUMBER% .'
+            }
+        }
+
+        stage('Load Image into Kind') {
+            steps {
+                bat 'kind load docker-image %APP_NAME%:build-%BUILD_NUMBER% --name %KIND_CLUSTER%'
+            }
+        }
+
+        stage('Deploy Green') {
+            steps {
+                bat '''
+                kubectl set image deployment/%GREEN_DEPLOYMENT% ^
+                  springboot-app=%APP_NAME%:build-%BUILD_NUMBER%
+                '''
+            }
+        }
+
+        stage('Wait for Green') {
+            steps {
+                bat '''
+                kubectl rollout status deployment/%GREEN_DEPLOYMENT% --timeout=120s
+                '''
+            }
+        }
+
+        stage('Smoke Test Green') {
+            steps {
+                bat '''
+                kubectl run smoke-test ^
+                  --rm ^
+                  --restart=Never ^
+                  --image=curlimages/curl ^
+                  -- curl -f http://service-green:9191/demo
+                '''
+            }
+        }
+
+        stage('Switch Traffic') {
+            steps {
+                bat '''
+                kubectl patch service service-production ^
+                  -p "{\\"spec\\":{\\"selector\\":{\\"app\\":\\"springboot-app\\",\\"version\\":\\"green\\"}}}"
+                '''
+            }
+        }
+
+        stage('Verify Production') {
+            steps {
+                bat '''
+                kubectl run production-test ^
+                  --rm ^
+                  --restart=Never ^
+                  --image=curlimages/curl ^
+                  -- curl -f http://service-production:9191/demo/spring
+                '''
+            }
+        }
+    }
+
+    post {
+        failure {
+            bat '''
+            kubectl patch service service-production ^
+              -p "{\\"spec\\":{\\"selector\\":{\\"app\\":\\"springboot-app\\",\\"version\\":\\"blue\\"}}}"
+            '''
+        }
+    }
+}
