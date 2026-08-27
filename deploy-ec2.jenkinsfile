@@ -2,6 +2,14 @@ pipeline {
 
     agent any
 
+    parameters {
+        choice(
+                name: 'ACTION',
+                choices: ['DEPLOY', 'DESTROY'],
+                description: 'Choose DEPLOY to deploy the application or DESTROY to remove the EKS infrastructure and ECR repository.'
+        )
+    }
+
     environment {
         AWS_REGION = 'ap-south-1'
         AWS_ACCOUNT_ID = '911291530745'
@@ -16,22 +24,31 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
+            when {
+                expression {
+                    params.ACTION == 'DEPLOY'
+                }
+            }
             steps {
                 checkout scm
             }
         }
 
         stage('Terraform Init') {
+            when {
+                expression {
+                    params.ACTION == 'DEPLOY'
+                }
+            }
             steps {
                 dir("${TERRAFORM_DIR}") {
                     withCredentials([
-                        usernamePassword(
-                            credentialsId: 'aws-ecr',
-                            usernameVariable: 'AWS_ACCESS_KEY_ID',
-                            passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-                        )
+                            usernamePassword(
+                                    credentialsId: 'aws-ecr',
+                                    usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                            )
                     ]) {
                         bat 'terraform init'
                     }
@@ -40,14 +57,19 @@ pipeline {
         }
 
         stage('Terraform Apply') {
+            when {
+                expression {
+                    params.ACTION == 'DEPLOY'
+                }
+            }
             steps {
                 dir("${TERRAFORM_DIR}") {
                     withCredentials([
-                        usernamePassword(
-                            credentialsId: 'aws-ecr',
-                            usernameVariable: 'AWS_ACCESS_KEY_ID',
-                            passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-                        )
+                            usernamePassword(
+                                    credentialsId: 'aws-ecr',
+                                    usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                            )
                     ]) {
                         bat 'terraform apply -auto-approve'
                     }
@@ -56,32 +78,52 @@ pipeline {
         }
 
         stage('Test') {
+            when {
+                expression {
+                    params.ACTION == 'DEPLOY'
+                }
+            }
             steps {
                 bat 'mvnw.cmd clean test'
             }
         }
 
         stage('Build JAR') {
+            when {
+                expression {
+                    params.ACTION == 'DEPLOY'
+                }
+            }
             steps {
                 bat 'mvnw.cmd clean package -DskipTests'
             }
         }
 
         stage('Docker Build') {
+            when {
+                expression {
+                    params.ACTION == 'DEPLOY'
+                }
+            }
             steps {
                 bat 'docker build -t %IMAGE_NAME%:%BUILD_NUMBER% .'
             }
         }
 
         stage('Login to ECR') {
+            when {
+                expression {
+                    params.ACTION == 'DEPLOY'
+                }
+            }
             steps {
 
                 withCredentials([
-                    usernamePassword(
-                        credentialsId: 'aws-ecr',
-                        usernameVariable: 'AWS_ACCESS_KEY_ID',
-                        passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-                    )
+                        usernamePassword(
+                                credentialsId: 'aws-ecr',
+                                usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                        )
                 ]) {
 
                     bat '''
@@ -94,12 +136,22 @@ pipeline {
         }
 
         stage('Push Image') {
+            when {
+                expression {
+                    params.ACTION == 'DEPLOY'
+                }
+            }
             steps {
                 bat 'docker push %IMAGE_NAME%:%BUILD_NUMBER%'
             }
         }
 
         stage('Get EC2 IP') {
+            when {
+                expression {
+                    params.ACTION == 'DEPLOY'
+                }
+            }
             steps {
 
                 dir("${TERRAFORM_DIR}") {
@@ -111,7 +163,7 @@ pipeline {
 
                 script {
                     env.EC2_PUBLIC_IP = readFile(
-                        "${TERRAFORM_DIR}\\ec2_ip.txt"
+                            "${TERRAFORM_DIR}\\ec2_ip.txt"
                     ).trim()
 
                     echo "EC2 IP: ${env.EC2_PUBLIC_IP}"
@@ -120,14 +172,19 @@ pipeline {
         }
 
         stage('Deploy to EC2') {
+            when {
+                expression {
+                    params.ACTION == 'DEPLOY'
+                }
+            }
             steps {
 
                 withCredentials([
-                    usernamePassword(
-                        credentialsId: 'aws-ecr',
-                        usernameVariable: 'AWS_ACCESS_KEY_ID',
-                        passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-                    )
+                        usernamePassword(
+                                credentialsId: 'aws-ecr',
+                                usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                        )
                 ]) {
 
                     bat """
@@ -154,11 +211,37 @@ pipeline {
         }
 
         stage('Verify Application') {
+            when {
+                expression {
+                    params.ACTION == 'DEPLOY'
+                }
+            }
             steps {
 
                 bat """
                     curl http://${EC2_PUBLIC_IP}:9191
                 """
+            }
+        }
+
+        stage('Terraform Destroy') {
+            when {
+                expression {
+                    params.ACTION == 'DESTROY'
+                }
+            }
+            steps {
+                dir("${TERRAFORM_DIR}") {
+                    withCredentials([
+                            usernamePassword(
+                                    credentialsId: 'aws-ecr',
+                                    usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                            )
+                    ]) {
+                        bat 'terraform destroy -auto-approve'
+                    }
+                }
             }
         }
     }

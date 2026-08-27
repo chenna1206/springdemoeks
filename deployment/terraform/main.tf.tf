@@ -84,7 +84,7 @@ resource "aws_security_group" "spring_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags= {
+  tags = {
     Name = "${var.app_short}-sg-${var.environment}"
   }
 }
