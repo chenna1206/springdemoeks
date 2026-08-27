@@ -92,6 +92,8 @@ resource "aws_security_group" "spring_sg" {
 resource "aws_ecr_repository" "springboot" {
   name = "springboot-app"
 
+  force_delete = true
+
   image_scanning_configuration {
     scan_on_push = true
   }
