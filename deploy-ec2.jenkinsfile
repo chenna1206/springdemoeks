@@ -35,7 +35,7 @@ pipeline {
                 dir("${TERRAFORM_DIR}") {
                     withCredentials([
                             usernamePassword(
-                                    credentialsId: 'aws-jenkins',
+                                    credentialsId: 'aws-ecr',
                                     usernameVariable: 'AWS_ACCESS_KEY_ID',
                                     passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                             )
@@ -56,7 +56,7 @@ pipeline {
                 dir("${TERRAFORM_DIR}") {
                     withCredentials([
                             usernamePassword(
-                                    credentialsId: 'aws-jenkins',
+                                    credentialsId: 'aws-ecr',
                                     usernameVariable: 'AWS_ACCESS_KEY_ID',
                                     passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                             )
@@ -110,7 +110,7 @@ pipeline {
 
                 withCredentials([
                         usernamePassword(
-                                credentialsId: 'aws-jenkins',
+                                credentialsId: 'aws-ecr',
                                 usernameVariable: 'AWS_ACCESS_KEY_ID',
                                 passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                         )
@@ -148,7 +148,7 @@ pipeline {
 
                     withCredentials([
                             usernamePassword(
-                                    credentialsId: 'aws-jenkins',
+                                    credentialsId: 'aws-ecr',
                                     usernameVariable: 'AWS_ACCESS_KEY_ID',
                                     passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                             )
@@ -180,7 +180,7 @@ pipeline {
 
                 withCredentials([
                         usernamePassword(
-                                credentialsId: 'aws-jenkins',
+                                credentialsId: 'aws-ecr',
                                 usernameVariable: 'AWS_ACCESS_KEY_ID',
                                 passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                         )
@@ -233,7 +233,7 @@ pipeline {
                 dir("${TERRAFORM_DIR}") {
                     withCredentials([
                             usernamePassword(
-                                    credentialsId: 'aws-jenkins',
+                                    credentialsId: 'aws-ecr',
                                     usernameVariable: 'AWS_ACCESS_KEY_ID',
                                     passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                             )
