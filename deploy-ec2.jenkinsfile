@@ -176,6 +176,7 @@ pipeline {
                     params.ACTION == 'DEPLOY'
                 }
             }
+
             steps {
 
                 withCredentials([
@@ -183,28 +184,33 @@ pipeline {
                                 credentialsId: 'aws-ecr',
                                 usernameVariable: 'AWS_ACCESS_KEY_ID',
                                 passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ),
+                        sshUserPrivateKey(
+                                credentialsId: 'ec2-ssh-key',
+                                keyFileVariable: 'SSH_KEY',
+                                usernameVariable: 'SSH_USER'
                         )
                 ]) {
 
                     bat """
-                        ssh -o StrictHostKeyChecking=no ec2-user@${EC2_PUBLIC_IP} "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
-                    """
+                ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %SSH_USER%@${EC2_PUBLIC_IP} "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+            """
 
                     bat """
-                        ssh -o StrictHostKeyChecking=no ec2-user@${EC2_PUBLIC_IP} "docker pull ${IMAGE_NAME}:${BUILD_NUMBER}"
-                    """
+                ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %SSH_USER%@${EC2_PUBLIC_IP} "docker pull ${IMAGE_NAME}:${BUILD_NUMBER}"
+            """
 
                     bat """
-                        ssh -o StrictHostKeyChecking=no ec2-user@${EC2_PUBLIC_IP} "docker stop springboot-app || true"
-                    """
+                ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %SSH_USER%@${EC2_PUBLIC_IP} "docker stop springboot-app"
+            """
 
                     bat """
-                        ssh -o StrictHostKeyChecking=no ec2-user@${EC2_PUBLIC_IP} "docker rm springboot-app || true"
-                    """
+                ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %SSH_USER%@${EC2_PUBLIC_IP} "docker rm springboot-app"
+            """
 
                     bat """
-                        ssh -o StrictHostKeyChecking=no ec2-user@${EC2_PUBLIC_IP} "docker run -d --name springboot-app -p 9191:9191 ${IMAGE_NAME}:${BUILD_NUMBER}"
-                    """
+                ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %SSH_USER%@${EC2_PUBLIC_IP} "docker run -d --name springboot-app -p 9191:9191 ${IMAGE_NAME}:${BUILD_NUMBER}"
+            """
                 }
             }
         }
