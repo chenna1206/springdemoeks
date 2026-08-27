@@ -36,11 +36,6 @@ pipeline {
         }
 
         stage('Terraform Init') {
-            when {
-                expression {
-                    params.ACTION == 'DEPLOY'
-                }
-            }
             steps {
                 dir("${TERRAFORM_DIR}") {
                     withCredentials([
