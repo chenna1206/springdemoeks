@@ -25,11 +25,6 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            when {
-                expression {
-                    params.ACTION == 'DEPLOY'
-                }
-            }
             steps {
                 checkout scm
             }
@@ -40,7 +35,7 @@ pipeline {
                 dir("${TERRAFORM_DIR}") {
                     withCredentials([
                             usernamePassword(
-                                    credentialsId: 'aws-ecr',
+                                    credentialsId: 'aws-jenkins',
                                     usernameVariable: 'AWS_ACCESS_KEY_ID',
                                     passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                             )
@@ -61,7 +56,7 @@ pipeline {
                 dir("${TERRAFORM_DIR}") {
                     withCredentials([
                             usernamePassword(
-                                    credentialsId: 'aws-ecr',
+                                    credentialsId: 'aws-jenkins',
                                     usernameVariable: 'AWS_ACCESS_KEY_ID',
                                     passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                             )
@@ -115,7 +110,7 @@ pipeline {
 
                 withCredentials([
                         usernamePassword(
-                                credentialsId: 'aws-ecr',
+                                credentialsId: 'aws-jenkins',
                                 usernameVariable: 'AWS_ACCESS_KEY_ID',
                                 passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                         )
@@ -151,9 +146,18 @@ pipeline {
 
                 dir("${TERRAFORM_DIR}") {
 
-                    bat '''
-                        terraform output -raw ec2_public_ip > ec2_ip.txt
-                    '''
+                    withCredentials([
+                            usernamePassword(
+                                    credentialsId: 'aws-jenkins',
+                                    usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                            )
+                    ]) {
+
+                        bat '''
+                    terraform output -raw ec2_public_ip > ec2_ip.txt
+                '''
+                    }
                 }
 
                 script {
@@ -176,7 +180,7 @@ pipeline {
 
                 withCredentials([
                         usernamePassword(
-                                credentialsId: 'aws-ecr',
+                                credentialsId: 'aws-jenkins',
                                 usernameVariable: 'AWS_ACCESS_KEY_ID',
                                 passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                         )
@@ -229,7 +233,7 @@ pipeline {
                 dir("${TERRAFORM_DIR}") {
                     withCredentials([
                             usernamePassword(
-                                    credentialsId: 'aws-ecr',
+                                    credentialsId: 'aws-jenkins',
                                     usernameVariable: 'AWS_ACCESS_KEY_ID',
                                     passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                             )
