@@ -240,7 +240,7 @@ pipeline {
             steps {
 
                 bat """
-                    curl http://${EC2_PUBLIC_IP}:9191
+                    curl http://${EC2_PUBLIC_IP}:9191/actuator/health
                 """
             }
         }
