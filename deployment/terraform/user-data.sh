@@ -2,13 +2,15 @@
 
 set -e
 
-dnf update -y
+echo "Starting EC2 setup..." > /tmp/setup.log
 
-dnf install -y docker awscli
+apt-get update -y
+
+apt-get install -y docker.io awscli
 
 systemctl enable docker
 systemctl start docker
 
-usermod -aG docker ec2-user
+usermod -aG docker ubuntu
 
-echo "Docker and AWS CLI installation completed" > /tmp/setup.log
+echo "Docker and AWS CLI installation completed" >> /tmp/setup.log
