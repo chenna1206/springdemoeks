@@ -186,7 +186,7 @@ pipeline {
                                 passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                         ),
                         sshUserPrivateKey(
-                                credentialsId: 'ec2-ssh-key',
+                                credentialsId: 'ec2-ubuntu-ssh-key',
                                 keyFileVariable: 'SSH_KEY',
                                 usernameVariable: 'SSH_USER'
                         )
