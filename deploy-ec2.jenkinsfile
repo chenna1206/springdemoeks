@@ -193,14 +193,16 @@ pipeline {
                 ]) {
 
                     bat '''
-                copy /Y "%SSH_KEY%" "%WORKSPACE%\\ec2-key.pem"
-
-                icacls "%WORKSPACE%\\ec2-key.pem" /inheritance:r
-                icacls "%WORKSPACE%\\ec2-key.pem" /remove:g "Users"
-                icacls "%WORKSPACE%\\ec2-key.pem" /grant:r "%USERNAME%:R"
-
-                ssh -i "%WORKSPACE%\\ec2-key.pem" -o StrictHostKeyChecking=no %SSH_USER%@%EC2_PUBLIC_IP% "docker --version"
-            '''
+                        copy /Y "%SSH_KEY%" "%WORKSPACE%\\ec2-key.pem"
+                    
+                        icacls "%WORKSPACE%\\ec2-key.pem" /inheritance:r
+                        icacls "%WORKSPACE%\\ec2-key.pem" /remove:g "Users"
+                        icacls "%WORKSPACE%\\ec2-key.pem" /grant:r "SYSTEM:R"
+                    
+                        icacls "%WORKSPACE%\\ec2-key.pem"
+                    
+                        ssh -i "%WORKSPACE%\\ec2-key.pem" -o StrictHostKeyChecking=no %SSH_USER%@%EC2_PUBLIC_IP% "docker --version"
+                    '''
 
                     bat '''
                 ssh -i "%WORKSPACE%\\ec2-key.pem" -o StrictHostKeyChecking=no %SSH_USER%@%EC2_PUBLIC_IP% "aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REGISTRY%"
